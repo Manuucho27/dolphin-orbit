@@ -13,6 +13,8 @@ Their original copyright and license choices remain in the source headers.
 This distribution uses the GPL-3.0-only option; its text is in
 `LICENSES/GPL-3.0-only.txt`. The plugin and its complete source are distributed
 with Orbit. The CMake integration was written by Codex (OpenAI).
+The build copies these notices to `Binaries/QtGif-Licenses`, independently of
+Dolphin's `Licenses` directory, which is recreated after each executable link.
 
 SHA-256 of the upstream files:
 

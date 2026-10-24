@@ -12,8 +12,8 @@ target_link_libraries(orbit-qt-gif PRIVATE Qt6::Gui)
 add_custom_command(TARGET orbit-qt-gif POST_BUILD
   COMMAND "${CMAKE_COMMAND}" -E copy_directory
           "${CMAKE_CURRENT_SOURCE_DIR}/LICENSES"
-          "${CMAKE_BINARY_DIR}/Binaries/Licenses/QtGif"
+          "${CMAKE_BINARY_DIR}/Binaries/QtGif-Licenses"
   COMMAND "${CMAKE_COMMAND}" -E copy_if_different
           "${CMAKE_CURRENT_SOURCE_DIR}/README.md"
-          "${CMAKE_BINARY_DIR}/Binaries/Licenses/QtGif/README.md"
+          "${CMAKE_BINARY_DIR}/Binaries/QtGif-Licenses/README.md"
 )
