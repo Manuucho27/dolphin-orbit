@@ -30,6 +30,7 @@
 #include <QFrame>
 #include <QHeaderView>
 #include <QInputDialog>
+#include <QItemSelectionModel>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QListView>
@@ -60,6 +61,7 @@
 #include "DolphinQt/ConvertDialog.h"
 #include "DolphinQt/GameList/GridProxyModel.h"
 #include "DolphinQt/GameList/ListProxyModel.h"
+#include "DolphinQt/Home/HomeWidget.h"
 #include "DolphinQt/MenuBar.h"
 #include "DolphinQt/QtUtils/DolphinFileDialog.h"
 #include "DolphinQt/QtUtils/DoubleClickEventFilter.h"
@@ -126,6 +128,7 @@ GameList::GameList(QWidget* parent) : QStackedWidget(parent), m_model(this)
 
   MakeListView();
   MakeGridView();
+  MakeHomeView();
   MakeEmptyView();
 
   // Use List View's sorting for Grid View too.
@@ -145,8 +148,10 @@ GameList::GameList(QWidget* parent) : QStackedWidget(parent), m_model(this)
 
   addWidget(m_list);
   addWidget(m_grid);
+  addWidget(m_home);
   addWidget(m_empty);
   m_prefer_list = Settings::Instance().GetPreferredView();
+  m_prefer_home = Settings::Instance().GetHomeViewEnabled();
   ConsiderViewChange();
 
   auto* zoom_in = new QShortcut(QKeySequence::ZoomIn, this);
@@ -316,12 +321,7 @@ void GameList::MakeEmptyView()
 
   auto event_filter = new DoubleClickEventFilter{m_empty};
   m_empty->installEventFilter(event_filter);
-  connect(event_filter, &DoubleClickEventFilter::doubleClicked, [this] {
-    auto current_dir = QDir::currentPath();
-    auto dir = DolphinFileDialog::getExistingDirectory(this, tr("Select a Directory"), current_dir);
-    if (!dir.isEmpty())
-      Settings::Instance().AddPath(dir);
-  });
+  connect(event_filter, &DoubleClickEventFilter::doubleClicked, this, &GameList::OpenGameFolder);
 
   QSizePolicy size_policy{m_empty->sizePolicy()};
   size_policy.setRetainSizeWhenHidden(true);
@@ -335,6 +335,32 @@ void GameList::MakeEmptyView()
     m_empty->setText(empty_msg);
     m_empty->setEnabled(true);
   });
+}
+
+void GameList::OpenGameFolder()
+{
+  const QString dir =
+      DolphinFileDialog::getExistingDirectory(this, tr("Select a Directory"), QDir::currentPath());
+  if (!dir.isEmpty())
+    Settings::Instance().AddPath(dir);
+}
+
+void GameList::MakeHomeView()
+{
+  m_home = new HomeWidget(m_grid_proxy, this);
+  m_home->GetView()->setContextMenuPolicy(Qt::CustomContextMenu);
+  connect(m_home, &HomeWidget::GameSelected, this, &GameList::GameSelected);
+  connect(m_home, &HomeWidget::OpenGeneralSettings, this, &GameList::OpenGeneralSettings);
+  connect(m_home, &HomeWidget::OpenGraphicsSettings, this, &GameList::OpenGraphicsSettings);
+  connect(m_home, &HomeWidget::OpenControllerSettings, this, &GameList::OpenControllerSettings);
+  connect(m_home, &HomeWidget::OpenFolderRequested, this, &GameList::OpenGameFolder);
+  connect(m_home->GetView(), &QListView::customContextMenuRequested, this,
+          &GameList::ShowContextMenu);
+  connect(m_home->GetView()->selectionModel(), &QItemSelectionModel::selectionChanged, this,
+          [this] {
+            if (currentWidget() == m_home)
+              emit SelectionChanged(GetSelectedGame());
+          });
 }
 
 void GameList::resizeEvent(QResizeEvent* event)
@@ -898,6 +924,8 @@ void GameList::ChangeDisc()
 
 QAbstractItemView* GameList::GetActiveView() const
 {
+  if (currentWidget() == m_home)
+    return m_home->GetView();
   if (currentWidget() == m_list)
   {
     return m_list;
@@ -916,6 +944,8 @@ QSortFilterProxyModel* GameList::GetActiveProxyModel() const
 
 std::shared_ptr<const UICommon::GameFile> GameList::GetSelectedGame() const
 {
+  if (currentWidget() == m_empty)
+    return {};
   QItemSelectionModel* const sel_model = GetActiveView()->selectionModel();
   if (sel_model->hasSelection())
   {
@@ -929,6 +959,8 @@ std::shared_ptr<const UICommon::GameFile> GameList::GetSelectedGame() const
 QList<std::shared_ptr<const UICommon::GameFile>> GameList::GetSelectedGames() const
 {
   QList<std::shared_ptr<const UICommon::GameFile>> selected_list;
+  if (currentWidget() == m_empty)
+    return selected_list;
   QItemSelectionModel* const sel_model = GetActiveView()->selectionModel();
 
   if (sel_model->hasSelection())
@@ -945,7 +977,8 @@ QList<std::shared_ptr<const UICommon::GameFile>> GameList::GetSelectedGames() co
 
 bool GameList::HasMultipleSelected() const
 {
-  return GetActiveView()->selectionModel()->selectedRows().size() > 1;
+  return currentWidget() != m_empty &&
+         GetActiveView()->selectionModel()->selectedRows().size() > 1;
 }
 
 std::shared_ptr<const UICommon::GameFile> GameList::FindGame(const std::string& path) const
@@ -971,28 +1004,66 @@ void GameList::SetViewColumn(int col, bool view)
 
 void GameList::SetPreferredView(bool list)
 {
+  m_prefer_home = false;
+  Settings::Instance().SetHomeViewEnabled(false);
   m_prefer_list = list;
   Settings::Instance().SetPreferredView(list);
   ConsiderViewChange();
+  GetActiveView()->setFocus();
+}
+
+void GameList::SetHomeView()
+{
+  m_prefer_home = true;
+  Settings::Instance().SetHomeViewEnabled(true);
+  ConsiderViewChange();
+  m_home->GetView()->setFocus();
 }
 
 void GameList::ConsiderViewChange()
 {
-  if (m_model.rowCount(QModelIndex()) > 0)
+  QWidget* next = m_empty;
+  if (m_prefer_home)
+    next = m_home;
+  else if (m_model.rowCount(QModelIndex()) > 0)
+    next = m_prefer_list ? static_cast<QWidget*>(m_list) : static_cast<QWidget*>(m_grid);
+
+  if (currentWidget() == next)
+    return;
+
+  // Carry selection through the source model so Play and context actions keep their target.
+  QModelIndex source_index;
+  if (currentWidget() != m_empty)
   {
-    if (m_prefer_list)
-      setCurrentWidget(m_list);
-    else
-      setCurrentWidget(m_grid);
+    const QModelIndexList selection = GetActiveView()->selectionModel()->selectedRows();
+    if (!selection.isEmpty())
+      source_index = GetActiveProxyModel()->mapToSource(selection.front());
   }
-  else
+  setCurrentWidget(next);
+  if (next != m_empty)
   {
-    setCurrentWidget(m_empty);
+    auto* view = GetActiveView();
+    setFocusProxy(view);
+    const QModelIndex index = GetActiveProxyModel()->mapFromSource(source_index.siblingAtColumn(0));
+    if (index.isValid())
+    {
+      view->selectionModel()->setCurrentIndex(
+          index, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+      view->scrollTo(index);
+    }
   }
+  emit SelectionChanged(GetSelectedGame());
 }
 void GameList::keyPressEvent(QKeyEvent* event)
 {
-  if (event->key() == Qt::Key_Return && GetSelectedGame() != nullptr)
+  // Header controls must never start the currently selected game through event propagation.
+  if (currentWidget() == m_home && !m_home->GetView()->hasFocus())
+  {
+    QStackedWidget::keyPressEvent(event);
+    return;
+  }
+  if ((event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) &&
+      GetSelectedGame() != nullptr)
   {
     if (event->modifiers() == Qt::AltModifier)
       OpenProperties();

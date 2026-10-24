@@ -1,3 +1,49 @@
+# Dolphin Orbit — interfaz nativa para Windows
+
+Dolphin Orbit es un fork no oficial que utiliza la base de código completa de
+**Dolphin Emulator**, creada y mantenida por **Dolphin Emulator Project y sus
+autores y contribuidores**. El trabajo de este fork añade una interfaz propia
+inspirada en la navegación de PS5 y Nintendo Switch dentro de DolphinQt,
+implementada en C++/Qt Widgets.
+
+- Repositorio de Orbit: [Manuucho27/dolphin-orbit](https://github.com/Manuucho27/dolphin-orbit).
+- Descargas y versiones: [Releases de Orbit](https://github.com/Manuucho27/dolphin-orbit/releases).
+- Repositorio original: [dolphin-emu/dolphin](https://github.com/dolphin-emu/dolphin).
+- Base de partida: [e1d35f666cc35f6ead55d32ea2679df44d04da72](https://github.com/dolphin-emu/dolphin/commit/e1d35f666cc35f6ead55d32ea2679df44d04da72).
+- [Guía de Orbit](README_ORBIT.md), [plan por fases](docs/ORBIT_PLAN.md) y
+  [atribución y alcance del trabajo de IA](docs/ATTRIBUTION.md).
+
+**La idea, el concepto y la dirección de Dolphin Orbit corresponden a
+[Manuucho27](https://github.com/Manuucho27). Todo el trabajo técnico del rediseño Orbit
+realizado en esta colaboración —investigación, implementación, integración,
+scripts, pruebas y documentación— ha sido realizado por Codex, un modelo de
+inteligencia artificial de OpenAI, con ayuda de sus subagentes.** Esta atribución
+se refiere a las modificaciones de Orbit; el emulador y su código original son
+obra de los autores y contribuidores de Dolphin y de sus dependencias.
+
+Se mantienen los avisos de autoría, las licencias por archivo y la documentación
+de Dolphin. La mayor parte de su código original y las nuevas modificaciones de
+Orbit se distribuyen bajo **GPL versión 2 o posterior (GPLv2+)**; las dependencias
+conservan sus propias licencias. Consulta [COPYING](COPYING) y
+[LICENSES](LICENSES). Este fork es independiente del proyecto oficial.
+
+**English:** Dolphin Orbit is an unofficial native DolphinQt interface fork,
+built on the complete Dolphin Emulator codebase. Credit for the original emulator
+belongs to the Dolphin Emulator Project, its authors and contributors.
+[Manuucho27](https://github.com/Manuucho27) provided the Orbit idea, concept and
+direction; Codex, an OpenAI AI model, and its
+subagents carried out all Orbit technical work in this collaboration. Existing
+copyright notices and licenses are preserved.
+
+![Orbit Home: demostración del widget Qt con entradas sintéticas](docs/images/orbit-preview.png)
+
+Vista de demostración del widget Qt real con entradas sintéticas, sin juegos
+incluidos. La captura no corresponde a una sesión de emulación.
+
+---
+
+The original Dolphin README follows in full.
+
 # Dolphin - A GameCube and Wii Emulator
 
 [Homepage](https://dolphin-emu.org/) | [Project Site](https://github.com/dolphin-emu/dolphin) | [Buildbot](https://dolphin.ci/) | [Forums](https://forums.dolphin-emu.org/) | [Wiki](https://wiki.dolphin-emu.org/) | [GitHub Wiki](https://github.com/dolphin-emu/dolphin/wiki) | [Issue Tracker](https://bugs.dolphin-emu.org/projects/emulator/issues) | [Coding Style](https://github.com/dolphin-emu/dolphin/blob/master/Contributing.md) | [Transifex Page](https://app.transifex.com/dolphinemu/dolphin-emu/dashboard/) | [Analytics](https://mon.dolphin-emu.org/)

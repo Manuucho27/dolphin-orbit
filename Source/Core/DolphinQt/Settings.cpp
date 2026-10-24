@@ -573,6 +573,16 @@ void Settings::SetPreferredView(bool list)
   GetQSettings().setValue(QStringLiteral("PreferredView"), list);
 }
 
+bool Settings::GetHomeViewEnabled() const
+{
+  return GetQSettings().value(QStringLiteral("Orbit/HomeView"), true).toBool();
+}
+
+void Settings::SetHomeViewEnabled(bool enabled)
+{
+  GetQSettings().setValue(QStringLiteral("Orbit/HomeView"), enabled);
+}
+
 int Settings::GetStateSlot() const
 {
   return GetQSettings().value(QStringLiteral("Emulation/StateSlot"), 1).toInt();

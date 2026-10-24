@@ -9,6 +9,7 @@
 
 #include "DolphinQt/GameList/GameListModel.h"
 
+class HomeWidget;
 class QAbstractItemView;
 class QLabel;
 class QListView;
@@ -37,6 +38,7 @@ public:
 
   void SetListView() { SetPreferredView(true); }
   void SetGridView() { SetPreferredView(false); }
+  void SetHomeView();
   void SetViewColumn(int col, bool view);
   void SetSearchTerm(const QString& term);
 
@@ -59,6 +61,7 @@ signals:
   void SelectionChanged(const std::shared_ptr<const UICommon::GameFile>& game_file);
   void OpenGeneralSettings();
   void OpenGraphicsSettings();
+  void OpenControllerSettings();
 #ifdef USE_RETRO_ACHIEVEMENTS
   void OpenAchievementSettings();
 #endif  // USE_RETRO_ACHIEVEMENTS
@@ -94,8 +97,10 @@ private:
 
   void MakeListView();
   void MakeGridView();
+  void MakeHomeView();
   void MakeEmptyView();
-  // We only have two views, just use a bool to distinguish.
+  void OpenGameFolder();
+  // Preserve the classic list/grid preference independently of Home.
   void SetPreferredView(bool list);
   QAbstractItemView* GetActiveView() const;
   QSortFilterProxyModel* GetActiveProxyModel() const;
@@ -109,7 +114,9 @@ private:
   QListView* m_grid;
   QTableView* m_list;
   QLabel* m_empty;
-  bool m_prefer_list;
+  HomeWidget* m_home;
+  bool m_prefer_list = true;
+  bool m_prefer_home = true;
 
 protected:
   void keyPressEvent(QKeyEvent* event) override;

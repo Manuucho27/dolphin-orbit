@@ -588,6 +588,7 @@ void MainWindow::ConnectMenuBar()
   // View
   connect(m_menu_bar, &MenuBar::ShowList, m_game_list, &GameList::SetListView);
   connect(m_menu_bar, &MenuBar::ShowGrid, m_game_list, &GameList::SetGridView);
+  connect(m_menu_bar, &MenuBar::ShowHome, m_game_list, &GameList::SetHomeView);
   connect(m_menu_bar, &MenuBar::PurgeGameListCache, m_game_list, &GameList::PurgeCache);
   connect(m_menu_bar, &MenuBar::ShowSearch, m_search_bar, &SearchBar::Show);
 
@@ -715,6 +716,7 @@ void MainWindow::ConnectGameList()
 
   connect(m_game_list, &GameList::OpenGeneralSettings, this, &MainWindow::ShowGeneralWindow);
   connect(m_game_list, &GameList::OpenGraphicsSettings, this, &MainWindow::ShowGraphicsWindow);
+  connect(m_game_list, &GameList::OpenControllerSettings, this, &MainWindow::ShowControllersWindow);
 }
 
 void MainWindow::ConnectRenderWidget()

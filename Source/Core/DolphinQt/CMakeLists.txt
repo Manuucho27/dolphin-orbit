@@ -292,6 +292,8 @@ add_executable(dolphin-emu
   GameList/GridProxyModel.h
   GameList/ListProxyModel.cpp
   GameList/ListProxyModel.h
+  Home/HomeWidget.cpp
+  Home/HomeWidget.h
   GCMemcardCreateNewDialog.cpp
   GCMemcardCreateNewDialog.h
   GCMemcardManager.cpp

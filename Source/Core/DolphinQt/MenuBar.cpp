@@ -703,6 +703,9 @@ void MenuBar::AddHelpMenu()
 
 void MenuBar::AddGameListTypeSection(QMenu* view_menu)
 {
+  QAction* home_view = view_menu->addAction(tr("Orbit Home"));
+  home_view->setCheckable(true);
+
   QAction* list_view = view_menu->addAction(tr("List View"));
   list_view->setCheckable(true);
 
@@ -710,13 +713,17 @@ void MenuBar::AddGameListTypeSection(QMenu* view_menu)
   grid_view->setCheckable(true);
 
   QActionGroup* list_group = new QActionGroup(this);
+  list_group->addAction(home_view);
   list_group->addAction(list_view);
   list_group->addAction(grid_view);
 
-  bool prefer_list = Settings::Instance().GetPreferredView();
-  list_view->setChecked(prefer_list);
-  grid_view->setChecked(!prefer_list);
+  const bool prefer_home = Settings::Instance().GetHomeViewEnabled();
+  const bool prefer_list = Settings::Instance().GetPreferredView();
+  home_view->setChecked(prefer_home);
+  list_view->setChecked(!prefer_home && prefer_list);
+  grid_view->setChecked(!prefer_home && !prefer_list);
 
+  connect(home_view, &QAction::triggered, this, &MenuBar::ShowHome);
   connect(list_view, &QAction::triggered, this, &MenuBar::ShowList);
   connect(grid_view, &QAction::triggered, this, &MenuBar::ShowGrid);
 }

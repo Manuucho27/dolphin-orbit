@@ -101,6 +101,8 @@ public:
   void RemovePath(const QString& path);
   bool GetPreferredView() const;
   void SetPreferredView(bool list);
+  bool GetHomeViewEnabled() const;
+  void SetHomeViewEnabled(bool enabled);
   QString GetDefaultGame() const;
   void SetDefaultGame(const QString& path);
   void RefreshGameList();

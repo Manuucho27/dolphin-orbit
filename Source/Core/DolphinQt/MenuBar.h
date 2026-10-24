@@ -118,6 +118,7 @@ signals:
   // View
   void ShowList();
   void ShowGrid();
+  void ShowHome();
   void PurgeGameListCache();
   void ShowSearch();
   void ColumnVisibilityToggled(const QString& row, bool visible);
