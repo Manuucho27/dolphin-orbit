@@ -42,6 +42,10 @@ originales de Dolphin. La biblioteca, los filtros, las vistas clásicas y la rut
 de arranque siguen compartidos con DolphinQt. La navegación de Home por mando
 todavía está pendiente.
 
+Los juegos se ejecutan dentro de la ventana de Orbit por defecto y al detenerlos
+se vuelve a Home. Los perfiles anteriores que hayan guardado la opción contraria
+pueden activar **Render to Main Window** en **Gráficos → General**.
+
 Para dar un fondo a un juego, selecciónalo y abre **Personalizar fondo → Elegir
 imagen o GIF…**. La distribución Windows incorpora GIF y PNG; JPEG, WebP y BMP
 aparecen en el selector solo si está instalado su decodificador Qt. Cada juego

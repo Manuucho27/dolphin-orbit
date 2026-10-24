@@ -1348,6 +1348,7 @@ void MainWindow::ShowRenderWidget()
     m_rendering_to_main = true;
 
     m_stack->setCurrentIndex(m_stack->addWidget(m_render_widget));
+    m_render_widget->setFocus(Qt::OtherFocusReason);
     connect(Host::GetInstance(), &Host::RequestTitle, this, &MainWindow::setWindowTitle);
     m_stack->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
     m_stack->repaint();

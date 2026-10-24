@@ -15,6 +15,7 @@ de esta sección corresponden al código de la segunda entrega.
 | Aplicación nativa con perfil aislado | Comprobada visualmente: cabecera propia y ausencia de las franjas blancas superior e inferior y de la barra de título clásica; Más y maximizar/restaurar funcionales. |
 | Escaneo de biblioteca | Un DOL sintético propio apareció en la biblioteca. Un DOL mal alineado produjo un error y permitió recuperar la interfaz. |
 | Ciclo de emulación sintética | Un DOL propio alineado inició emulación en ventana separada; Pausa cambió a Jugar en la cabecera; tras confirmar Detener, volvió Home y se ocultaron los controles de emulación. |
+| Corrección v0.2.1: ventana única por defecto | Correcta: con un perfil nuevo sin RenderToMain guardado, el DOL sintético arrancó como RenderWidget dentro de la pila principal. Solo existía una ventana de Dolphin; Detener recuperó Home y retiró los controles de emulación, conservando la misma ventana. El render recibe foco al insertarlo. |
 | Codificación del helper y dependencias de cabeceras | Correcta: prefijo UTF-8 y 311 dependencias válidas para HomeWidget.cpp.obj, verificadas mediante Ninja en la compilación real. |
 
 Se utilizaron perfiles aislados, imágenes y programas sintéticos propios. No se
@@ -26,7 +27,7 @@ Los formatos ofrecidos por el selector dependen de los decodificadores Qt
 instalados. Esta distribución Windows incorpora GIF y PNG. JPEG, WebP y BMP
 solo están disponibles cuando su decodificador Qt correspondiente está instalado.
 
-Siguen pendientes el render integrado, fullscreen de emulación, escalado
+Siguen pendientes fullscreen de emulación, escalado
 100–200 %, bibliotecas grandes y redimensionado desde los bordes de la ventana.
 El intento de comprobar este último no fue concluyente. La navegación de Home
 por mando tampoco está implementada.
