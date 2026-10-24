@@ -13,6 +13,9 @@
 #include <QFileInfo>
 #include <QIcon>
 #include <QMimeData>
+#include <QResizeEvent>
+#include <QSignalBlocker>
+#include <QSizeGrip>
 #include <QStackedWidget>
 #include <QStyleHints>
 #include <QVBoxLayout>
@@ -24,6 +27,11 @@
 #include <optional>
 #include <utility>
 #include <variant>
+
+#ifdef _WIN32
+#include <Windows.h>
+#include <windowsx.h>
+#endif
 
 #if defined(__unix__) || defined(__unix) || defined(__APPLE__)
 #include <signal.h>
@@ -96,8 +104,8 @@
 #include "DolphinQt/EmulatedUSB/WiiSpeakWindow.h"
 #include "DolphinQt/FIFO/FIFOPlayerWindow.h"
 #include "DolphinQt/GCMemcardManager.h"
-#include "DolphinQt/GameCount.h"
 #include "DolphinQt/GameList/GameList.h"
+#include "DolphinQt/Home/OrbitTitleBar.h"
 #include "DolphinQt/Host.h"
 #include "DolphinQt/HotkeyScheduler.h"
 #include "DolphinQt/InfinityBase/InfinityBaseWindow.h"
@@ -219,6 +227,8 @@ MainWindow::MainWindow(Core::System& system, std::unique_ptr<BootParameters> boo
 {
   setWindowTitle(QString::fromStdString(Common::GetScmRevStr()));
   setWindowIcon(Resources::GetAppIcon());
+  // Set before creating a native handle: controller and render integrations keep that HWND.
+  setWindowFlag(Qt::FramelessWindowHint);
   setUnifiedTitleAndToolBarOnMac(true);
   setAcceptDrops(true);
   setAttribute(Qt::WA_NativeWindow);
@@ -231,10 +241,12 @@ MainWindow::MainWindow(Core::System& system, std::unique_ptr<BootParameters> boo
   ConnectRenderWidget();
   ConnectStack();
   ConnectMenuBar();
+  CreateOrbitShell();
 
   QSettings& settings = Settings::GetQSettings();
   restoreState(settings.value(QStringLiteral("mainwindow/state")).toByteArray());
   restoreGeometry(settings.value(QStringLiteral("mainwindow/geometry")).toByteArray());
+  UpdateOrbitChrome();
   if (!Settings::Instance().IsBatchModeEnabled())
   {
     show();
@@ -305,6 +317,7 @@ MainWindow::MainWindow(Core::System& system, std::unique_ptr<BootParameters> boo
   // Restoring of window states can sometimes go wrong, resulting in widgets being visible when they
   // shouldn't be so we have to reapply all our rules afterwards.
   Settings::Instance().RefreshWidgetVisibility();
+  UpdateOrbitChrome();
 
   if (!ResourcePack::Init())
   {
@@ -451,7 +464,6 @@ void MainWindow::CreateComponents()
   m_menu_bar = new MenuBar(this);
   m_tool_bar = new ToolBar(this);
   m_search_bar = new SearchBar(this);
-  m_game_count = new GameCount(this);
   m_game_list = new GameList(this);
   m_render_widget = new RenderWidget;
   m_stack = new QStackedWidget(this);
@@ -518,7 +530,8 @@ void MainWindow::CreateComponents()
 
 void MainWindow::ConnectMenuBar()
 {
-  setMenuBar(m_menu_bar);
+  // The original menu owns every Dolphin command; Orbit exposes the same menus under More.
+  m_menu_bar->hide();
   // File
   connect(m_menu_bar, &MenuBar::Open, this, &MainWindow::Open);
   connect(m_menu_bar, &MenuBar::Exit, this, &MainWindow::close);
@@ -741,32 +754,15 @@ void MainWindow::ConnectStack()
   auto* layout = new QVBoxLayout;
   widget->setLayout(layout);
 
-  layout->addWidget(m_game_list);
+  // Search belongs to the library page, with no separate white status strip beneath Home.
   layout->addWidget(m_search_bar);
-  layout->addWidget(m_game_count);
+  layout->addWidget(m_game_list);
   layout->setSpacing(0);
   layout->setContentsMargins(0, 0, 0, 0);
 
   connect(m_search_bar, &SearchBar::Search, m_game_list, &GameList::SetSearchTerm);
-  connect(m_game_list, &GameList::GameCountUpdated, m_game_count, &GameCount::OnGameCountUpdated);
 
   m_game_list->UpdateGameCount();
-
-  const auto update_spacing = [this](const bool game_count_is_visible) {
-    // The bottom margin of the search bar and the top margin of the game count are both suitable
-    // when the other widget is hidden, but when both are visible the gap created by the combination
-    // is too large. To fix this we set the bottom margin of the search bar to 0 when the game count
-    // is visible and set it to the top margin when the game count is hidden.
-    m_game_count->setVisible(game_count_is_visible);
-    auto* const search_layout = m_search_bar->layout();
-    QMargins search_margins = search_layout->contentsMargins();
-    const int new_bottom_margin = game_count_is_visible ? 0 : search_margins.top();
-    search_margins.setBottom(new_bottom_margin);
-    search_layout->setContentsMargins(search_margins);
-  };
-  update_spacing(Settings::Instance().IsGameCountVisible());
-
-  connect(&Settings::Instance(), &Settings::GameCountVisibilityChanged, update_spacing);
 
   m_stack->addWidget(widget);
 
@@ -796,6 +792,82 @@ void MainWindow::ConnectStack()
   tabifyDockWidget(m_log_widget, m_network_widget);
   tabifyDockWidget(m_log_widget, m_jit_widget);
   tabifyDockWidget(m_log_widget, m_assembler_widget);
+}
+
+void MainWindow::CreateOrbitShell()
+{
+  setObjectName(QStringLiteral("OrbitMainWindow"));
+  setStyleSheet(QStringLiteral(R"(
+    QMainWindow#OrbitMainWindow { background: #0a1220; }
+    QMainWindow#OrbitMainWindow::separator { background: #24354a; width: 4px; height: 4px; }
+  )"));
+  m_orbit_title_bar = new OrbitTitleBar(this, m_menu_bar, m_tool_bar);
+  setMenuWidget(m_orbit_title_bar);
+  connect(m_orbit_title_bar, &OrbitTitleBar::LibraryRequested, m_game_list, &GameList::SetHomeView);
+
+  // Hiding the classic toolbar for Home is presentation policy, not a change to its saved preference.
+  // Keep its actions alive and retain the toolbar itself when debugging is enabled.
+  disconnect(&Settings::Instance(), &Settings::ToolBarVisibilityChanged, m_tool_bar,
+             &ToolBar::setVisible);
+  disconnect(m_tool_bar, &ToolBar::visibilityChanged, &Settings::Instance(),
+             &Settings::SetToolBarVisible);
+  connect(&Settings::Instance(), &Settings::ToolBarVisibilityChanged, this,
+          &MainWindow::UpdateOrbitChrome);
+  connect(&Settings::Instance(), &Settings::DebugModeToggled, this, &MainWindow::UpdateOrbitChrome);
+  connect(&Settings::Instance(), &Settings::EmulationStateChanged, this,
+          [this](Core::State state) {
+            m_game_list->SetHomeBackgroundPlaybackEnabled(state == Core::State::Uninitialized);
+            UpdateOrbitChrome();
+          });
+  m_game_list->SetHomeBackgroundPlaybackEnabled(Core::IsUninitialized(m_system));
+
+  m_tool_bar->setStyleSheet(QStringLiteral(R"(
+    QToolBar { color: #edf2fa; background: #111e30; border: none; spacing: 3px; }
+    QToolBar QToolButton { color: #edf2fa; background: transparent; border-radius: 5px; padding: 4px; }
+    QToolBar QToolButton:hover { background: #2b4059; }
+    QToolBar QToolButton:disabled { color: #74839b; }
+  )"));
+  m_search_bar->setObjectName(QStringLiteral("OrbitSearch"));
+  m_search_bar->setFixedHeight(48);
+  m_search_bar->layout()->setContentsMargins(24, 6, 24, 6);
+  m_search_bar->setStyleSheet(QStringLiteral(R"(
+    QWidget#OrbitSearch { background: #0d1727; }
+    QWidget#OrbitSearch QLineEdit {
+      color: #f0f4fc; background: #17263a; border: 1px solid #31465d;
+      border-radius: 13px; padding: 5px 12px; selection-background-color: #355f72;
+    }
+    QWidget#OrbitSearch QLineEdit:focus { border-color: #70ece4; }
+    QWidget#OrbitSearch QPushButton {
+      color: #bdcbdf; background: #1b2c41; border: none; border-radius: 9px; padding: 6px 14px;
+    }
+    QWidget#OrbitSearch QPushButton:hover { color: white; background: #2b435c; }
+  )"));
+  m_orbit_resize_grip = new QSizeGrip(this);
+  m_orbit_resize_grip->setFixedSize(16, 16);
+  m_orbit_resize_grip->setStyleSheet(QStringLiteral("background: transparent;"));
+  installEventFilter(this);
+  UpdateOrbitChrome();
+}
+
+void MainWindow::UpdateOrbitChrome()
+{
+  const bool debug = Settings::Instance().IsDebugModeEnabled();
+  const QSignalBlocker toolbar_blocker(m_tool_bar);
+  m_tool_bar->setVisible(debug && Settings::Instance().IsToolBarVisible());
+  m_menu_bar->hide();
+  if (m_orbit_title_bar)
+  {
+    m_orbit_title_bar->SetEmulationActive(!Core::IsUninitialized(m_system));
+    m_orbit_title_bar->SetDebugModeEnabled(debug);
+    m_orbit_title_bar->SetLibraryEnabled(!m_rendering_to_main);
+  }
+  if (m_orbit_resize_grip)
+  {
+    m_orbit_resize_grip->move(width() - m_orbit_resize_grip->width(),
+                              height() - m_orbit_resize_grip->height());
+    m_orbit_resize_grip->setVisible(!isMaximized() && !isFullScreen());
+    m_orbit_resize_grip->raise();
+  }
 }
 
 void MainWindow::RefreshGameList()
@@ -1290,6 +1362,7 @@ void MainWindow::ShowRenderWidget()
     m_render_widget->showNormal();
     m_render_widget->restoreGeometry(m_render_widget_geometry);
   }
+  UpdateOrbitChrome();
 }
 
 void MainWindow::HideRenderWidget(bool reinit, bool is_exit)
@@ -1333,6 +1406,7 @@ void MainWindow::HideRenderWidget(bool reinit, bool is_exit)
                                         is_exit ? ControllerInterface::WindowChangeReason::Exit :
                                                   ControllerInterface::WindowChangeReason::Other);
   }
+  UpdateOrbitChrome();
 }
 
 void MainWindow::ShowControllersWindow()
@@ -1781,6 +1855,8 @@ void MainWindow::UpdateScreenSaverInhibition()
 
 bool MainWindow::eventFilter(QObject* object, QEvent* event)
 {
+  if (object == this && event->type() == QEvent::WindowStateChange)
+    UpdateOrbitChrome();
   if (event->type() == QEvent::Close)
   {
     if (RequestStop() && object == this)
@@ -1791,6 +1867,46 @@ bool MainWindow::eventFilter(QObject* object, QEvent* event)
   }
 
   return false;
+}
+
+bool MainWindow::nativeEvent(const QByteArray& event_type, void* message, qintptr* result)
+{
+#ifdef _WIN32
+  const auto* native_message = static_cast<MSG*>(message);
+  if (native_message->message == WM_NCHITTEST && !isMaximized() && !isFullScreen())
+  {
+    RECT bounds;
+    if (GetWindowRect(native_message->hwnd, &bounds))
+    {
+      const int border = qRound(6 * devicePixelRatioF());
+      const int x = GET_X_LPARAM(native_message->lParam);
+      const int y = GET_Y_LPARAM(native_message->lParam);
+      const bool left = x >= bounds.left && x < bounds.left + border;
+      const bool right = x < bounds.right && x >= bounds.right - border;
+      const bool top = y >= bounds.top && y < bounds.top + border;
+      const bool bottom = y < bounds.bottom && y >= bounds.bottom - border;
+      if (top || bottom || left || right)
+      {
+        *result = top ? (left ? HTTOPLEFT : right ? HTTOPRIGHT : HTTOP) :
+                  bottom ? (left ? HTBOTTOMLEFT : right ? HTBOTTOMRIGHT : HTBOTTOM) :
+                  left ? HTLEFT : HTRIGHT;
+        return true;
+      }
+    }
+  }
+#endif
+  return QMainWindow::nativeEvent(event_type, message, result);
+}
+
+void MainWindow::resizeEvent(QResizeEvent* event)
+{
+  QMainWindow::resizeEvent(event);
+  if (m_orbit_resize_grip)
+  {
+    m_orbit_resize_grip->move(width() - m_orbit_resize_grip->width(),
+                              height() - m_orbit_resize_grip->height());
+    m_orbit_resize_grip->raise();
+  }
 }
 
 QMenu* MainWindow::createPopupMenu()

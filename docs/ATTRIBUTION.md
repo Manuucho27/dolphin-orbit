@@ -55,3 +55,12 @@ la licencia aplicable a cada parte. Los textos se conservan en
 La mención de Codex y del trabajo de IA describe cómo se han producido las
 aportaciones de Orbit y no sustituye ni elimina las atribuciones y licencias
 existentes.
+
+## Lector GIF de Qt
+
+La segunda entrega incluye el lector GIF oficial de Qt 6.8.3, obra de
+The Qt Company Ltd. y los contribuidores de Qt. Su código original sin cambios,
+origen y hashes se conservan en [Externals/QtGif](../Externals/QtGif/README.md).
+Se utiliza la opción GPL-3.0-only indicada en sus cabeceras; la licencia acompaña
+al plugin en el paquete portable. Codex realizó la integración de compilación
+y su uso en Orbit; no escribió el decodificador original de Qt.

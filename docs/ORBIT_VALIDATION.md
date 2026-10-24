@@ -1,5 +1,41 @@
 # Validación de Dolphin Orbit — 24/10/2026
 
+## Segunda entrega — interfaz moderna y fondos por juego
+
+Base original: `e1d35f666cc35f6ead55d32ea2679df44d04da72`. Las comprobaciones
+de esta sección corresponden al código de la segunda entrega.
+
+| Comprobación | Resultado |
+| --- | --- |
+| Release completo desde un árbol limpio | Correcto en `work/orbit-modern`, fuera del repositorio; también pasó la recompilación incremental posterior. |
+| Lector GIF oficial de Qt 6.8.3 | `qgif.dll` compilado y desplegado con el ejecutable; fuente y licencia conservadas en `Externals/QtGif`. |
+| Suite de la cabecera de Orbit | Correcta: acciones originales, menús dinámicos, atajos y maximizar/restaurar. |
+| Suite de fondos | Correcta: decodificación y cambio real de fotogramas GIF, importación, persistencia entre sesiones, independencia entre juegos, pausa temporal y reducción de movimiento. |
+| Suite completa de Home | Correcta: selección, filtros, eliminación, reset, texto plano, Jugar, Enter y foco. |
+| Aplicación nativa con perfil aislado | Comprobada visualmente: cabecera propia y ausencia de las franjas blancas superior e inferior y de la barra de título clásica; Más y maximizar/restaurar funcionales. |
+| Escaneo de biblioteca | Un DOL sintético propio apareció en la biblioteca. Un DOL mal alineado produjo un error y permitió recuperar la interfaz. |
+| Ciclo de emulación sintética | Un DOL propio alineado inició emulación en ventana separada; Pausa cambió a Jugar en la cabecera; tras confirmar Detener, volvió Home y se ocultaron los controles de emulación. |
+| Codificación del helper y dependencias de cabeceras | La verificación final sobre la compilación real está pendiente de incorporarse a este registro. |
+
+Se utilizaron perfiles aislados, imágenes y programas sintéticos propios. No se
+emplearon juegos comerciales ni partidas del usuario. La prueba del DOL verifica
+la integración básica de arranque, pausa y parada; no demuestra compatibilidad
+de juegos ni todos los comportamientos de una sesión prolongada.
+
+Los formatos ofrecidos por el selector dependen de los decodificadores Qt
+instalados. Esta distribución Windows incorpora GIF y PNG. JPEG, WebP y BMP
+solo están disponibles cuando su decodificador Qt correspondiente está instalado.
+
+Siguen pendientes el render integrado, fullscreen de emulación, escalado
+100–200 %, bibliotecas grandes y redimensionado desde los bordes de la ventana.
+El intento de comprobar este último no fue concluyente. La navegación de Home
+por mando tampoco está implementada.
+
+## Registro histórico — primera entrega
+
+Las entradas siguientes conservan las comprobaciones y limitaciones de la
+primera base. El estado vigente de la segunda entrega se describe arriba.
+
 Base: `e1d35f666cc35f6ead55d32ea2679df44d04da72`.
 
 | Comprobación | Resultado |
@@ -17,7 +53,7 @@ Base: `e1d35f666cc35f6ead55d32ea2679df44d04da72`.
 | Copia al escritorio y acceso directo | Completados; el ejecutable copiado tiene el mismo hash que el compilado. |
 | Espacios y parche | `git diff --check` y comprobación inversa del parche realizadas al preparar la entrega. |
 
-## Historial del bloqueo de compilación, resuelto
+### Historial del bloqueo de compilación, resuelto
 
 En la primera entrega estaba instalado Visual Studio Build Tools 2026 18.6.0, MSVC 19.51.36243
 (`_MSC_FULL_VER=195136243`). Requerido por el código fijado: MSVC
@@ -34,7 +70,7 @@ El árbol anterior contenía PCH de otro compilador y produjo C1853; se resolvi�
 usando el árbol limpio y corto `work/orbit-release`. El helper admite ahora
 seleccionar ese directorio y limpiar sus objetos antes de compilar.
 
-## Prueba aislada del widget
+### Prueba aislada del widget
 
 Se compiló el mismo `Home/HomeWidget.cpp/.h` entregado, con AUTOMOC y Qt 6.8.3,
 en un ejecutable de prueba temporal. Usa QStandardItemModel y un proxy de
@@ -70,7 +106,7 @@ saved synthetic previews
 capturas del widget real a 1100×720. El ejecutable de prueba es una herramienta
 de verificación temporal, no un frontend del fork.
 
-## Comprobaciones pendientes
+### Pendientes registrados en la primera entrega
 
 1. Completar la revisión visual de la aplicación real tras corregir el fondo
    con `WA_StyledBackground`; su regresión automatizada ya pasó.

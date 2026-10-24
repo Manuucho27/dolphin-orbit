@@ -5,13 +5,21 @@ Actualizado el 24/10/2026. Base inspeccionada: `e1d35f666cc35f6ead55d32ea2679df4
 El remoto `upstream` apunta a Dolphin oficial. El fork público conserva su historial:
 [Manuucho27/dolphin-orbit](https://github.com/Manuucho27/dolphin-orbit).
 
+Orbit utiliza la base de código completa de **Dolphin Emulator Project y sus
+autores y contribuidores**, procedente de
+[dolphin-emu/dolphin](https://github.com/dolphin-emu/dolphin). La idea, el concepto
+y la dirección de Orbit son de [Manuucho27](https://github.com/Manuucho27); todo
+el trabajo técnico de Orbit en esta colaboración lo realiza **Codex, un modelo
+de IA de OpenAI, y sus subagentes**. Esto no atribuye a la IA el emulador ni las
+dependencias originales. Se conservan sus créditos y licencias.
+
 ## Arquitectura comprobada
 
 DolphinQt usa C++ y Qt Widgets. Su objetivo CMake es `dolphin-emu`; `AUTOMOC` y
 `AUTORCC` ya están habilitados. Windows incluye Qt 6.8.3 mediante `Externals/Qt`.
 La ruta vigente de compilación utiliza `CMakePresets.json`.
 
-La integración inicial queda así:
+La integración queda así:
 
 ```text
 GameTracker → GameListModel → GridProxyModel → HomeWidget / cuadrícula
@@ -19,6 +27,8 @@ GameTracker → GameListModel → GridProxyModel → HomeWidget / cuadrícula
 
 HomeWidget.GameSelected → GameList.GameSelected → MainWindow.Play()
 HomeWidget.ajustes     → GameList.señales      → diálogos de MainWindow
+MainWindow            → OrbitTitleBar        → acciones originales de Dolphin
+Qt.ini del perfil     → OrbitBackground      → imagen/GIF del juego seleccionado
 ```
 
 `GameList` sigue siendo dueño del único modelo y del seguimiento de archivos.
@@ -27,7 +37,7 @@ ordenación y artwork con la cuadrícula. Las acciones de contexto consultan la
 selección de la vista activa. `MainWindow` conserva su pila y sus funciones
 `ShowRenderWidget()` y `HideRenderWidget()` para el ciclo de emulación.
 
-## Fase 0 — base reproducible
+## Fase 0 — base reproducible, primera entrega completada
 
 Completada: repositorio oficial, submódulos fijados, helper, compilación completa
 de los 2031 objetivos y apertura de Dolphin con Home y un perfil aislado.
@@ -58,33 +68,69 @@ la cabecera no puede arrancar por accidente el juego seleccionado. El clic
 derecho conserva las acciones de Dolphin. Los metadatos se muestran como texto
 plano. Las tarjetas usan un delegate y no crean un widget por juego.
 
-Validado: sintaxis MSVC de los cinco `.cpp` modificados y prueba ejecutable de
+En la primera entrega se validaron la sintaxis MSVC de los cinco `.cpp` modificados y la prueba ejecutable de
 Home con Qt real, modelos sintéticos, selección, filtros, borrado, reset,
 actualizaciones, foco y botones; compilación completa y apertura de la interfaz
 real con perfil aislado. En esa apertura se detectó un fondo blanco; se añadió
 `WA_StyledBackground` y la recompilación pasó. La regresión automatizada con
-paleta blanca también pasó; queda la revisión visual de la aplicación corregida.
-También falta verificar biblioteca y juegos
-reales. Véase `ORBIT_VALIDATION.md`.
+paleta blanca también pasó. Estos resultados corresponden a la primera base;
+la segunda entrega añade la validación descrita en la fase 2. Las bibliotecas
+grandes y las sesiones completas con juegos siguen pendientes.
+Véase `ORBIT_VALIDATION.md`.
 
-## Fase 2 — experiencia de salón
+## Fase 2 — interfaz moderna, completada parcialmente
 
-Archivos previstos: ampliar `Home/HomeWidget.*`; añadir `Home/HomeTheme.h` y,
-si el contenido lo exige, `Home/HomeLibraryProxyModel.h/.cpp`; ajustar
-`MainWindow.*` y `Settings.*`.
+La segunda entrega implementa una Home con fondo en toda la superficie,
+información del juego en primer plano y carrusel inferior. Incluye transiciones
+de aproximadamente 350 ms y una cabecera propia sin las barras blancas clásicas.
+El menú **Más** conserva el acceso a las funciones originales; las acciones
+siguen perteneciendo a Dolphin. No hay un frontend separado.
 
-- Crear modo salón a pantalla completa con salida clara al modo escritorio.
-- Refinar jerarquía, panel y portadas a 720p/1080p/4K con escalado de Windows.
-- Incorporar transiciones discretas y opción de reducir movimiento.
-- Separar GameCube/Wii, favoritos mediante etiquetas existentes y recientes
-  persistidos por ruta de archivo; compartir siempre el modelo original.
-- Guardar selección por ruta, no por número de fila, entre sesiones.
-- Si se añade artwork grande, cargarlo fuera del hilo de interfaz y mantener
-  caché limitada, con fallback cuando falte. No descargar assets en cada repintado.
+| Archivo | Cambio de la segunda entrega |
+| --- | --- |
+| `Source/Core/DolphinQt/Home/HomeWidget.h/.cpp` | Composición moderna, carrusel, botones de navegación, menú Personalizar fondo y coordinación del fondo seleccionado. |
+| `Source/Core/DolphinQt/Home/OrbitBackground.h/.cpp` | Fondos por juego, GIF mediante QMovie sin CacheAll, importación segura al perfil, reducción de movimiento, pausa temporal, recorte proporcional y degradados para legibilidad. |
+| `Source/Core/DolphinQt/Home/OrbitTitleBar.h/.cpp` | Cabecera de Orbit, controles de ventana, accesos de emulación y menú Más con acciones existentes. |
+| `Source/Core/DolphinQt/MainWindow.h/.cpp` | Integración del marco, política de visibilidad y pausa del fondo durante emulación. |
+| `Source/Core/DolphinQt/GameList/GameList.h/.cpp` | Conexión del QSettings del perfil a Home y control temporal de reproducción del fondo. |
+| `Source/Core/DolphinQt/CMakeLists.txt` | Registro de los nuevos widgets y dependencia del lector GIF. |
+| `Externals/QtGif/` | Código oficial del lector GIF de Qt 6.8.3, integración CMake y licencia. |
+| `Tools/Orbit/SmokeTests/` | Suites aprobadas de Home, cabecera, acciones/menús/atajos e importación, persistencia y reproducción GIF con datos sintéticos. |
 
-Cierre: navegación de biblioteca y controles accesible con teclado, diseño sin
-recortes a 720p y 100–200 % de DPI, búsqueda y cambio de vistas coherentes.
-El marco clásico de menús y barra de herramientas aún permanece en esta entrega.
+**Personalizar fondo** permite elegir GIF o PNG por juego en esta distribución
+Windows; JPEG, WebP y BMP se ofrecen solo si está instalado su decodificador Qt.
+El menú permite quitar la elección y desactivar **Movimiento y transiciones**. El fondo se copia
+a `Orbit/Backgrounds`, junto al `Qt.ini` del perfil activo; el mapeo usa una clave
+derivada del juego y los archivos se nombran por su contenido. Los límites son
+32 MiB, 4096 píxeles por lado y 16 megapíxeles. Los archivos inválidos conservan
+la elección anterior y muestran un error. Quitar una elección elimina el mapeo,
+sin borrar archivos ajenos ni originales.
+
+Solo el juego seleccionado mantiene su QMovie. Se pausa al ocultar Home,
+minimizar la ventana y durante emulación; esa pausa no altera la preferencia de
+movimiento. Una actualización de metadatos del mismo juego no reinicia el GIF.
+El tamaño escalado se conserva entre repintados y las imágenes no se descargan.
+
+El Qt incluido en Dolphin para Windows tiene GIF desactivado. Se integra el
+plugin oficial **Qt 6.8.3**, obra de **The Qt Company Ltd. y los contribuidores
+de Qt**, manteniendo su código y avisos en `Externals/QtGif`. Se usa su opción
+GPL-3.0-only, con licencia incluida; Codex escribió la integración CMake.
+Pasaron la compilación Release limpia en `work/orbit-modern` y la recompilación
+incremental, el despliegue de `qgif.dll` y las suites completas de Home, GIF y
+cabecera. En la aplicación nativa con perfil aislado se comprobaron Más,
+maximizar/restaurar y la ausencia de barras blancas. Un DOL sintético propio
+permitió verificar escaneo, recuperación de error, emulación en ventana separada,
+pausa y parada con regreso a Home. No se usaron juegos comerciales ni partidas
+del usuario. Los detalles y límites se recogen en `ORBIT_VALIDATION.md`.
+
+Pendiente para completar esta fase:
+
+- Ampliar las comprobaciones de diálogos y del redimensionado por bordes; este último no dio un resultado concluyente.
+- Comprobar 720p/1080p/4K, escalado 100–200 %, textos largos y accesibilidad.
+- Completar el modo salón y su salida al escritorio sin interferir con el fullscreen de emulación.
+- Separar GameCube/Wii, añadir favoritos y recientes mediante el modelo original.
+- Conservar la selección por ruta entre sesiones y comprobar bibliotecas grandes.
+- Evaluar carga de imágenes fuera del hilo de interfaz si los archivos cercanos al límite afectan la respuesta.
 
 ## Fase 3 — navegación por mando
 
@@ -112,6 +158,11 @@ en ventana separada; cambio de disco; búsqueda durante escaneo; archivos
 duplicados por título; eliminación del seleccionado; filtros sin resultados;
 NetPlay, propiedades y vistas clásicas. Verificar perfiles portable y normal,
 accesibilidad, tamaños de fuente y biblioteca grande.
+
+La segunda entrega cubre el ciclo básico con un DOL sintético propio y render
+en ventana separada. Quedan pendientes el render integrado, fullscreen y la
+regresión amplia con las funciones y tamaños descritos; esa prueba inicial no
+equivale a compatibilidad verificada con juegos comerciales.
 
 Cierre: binario Windows reproducible y sesión completa de juego/parada/retorno
 sin pérdida de selección ni regresiones en los flujos anteriores.

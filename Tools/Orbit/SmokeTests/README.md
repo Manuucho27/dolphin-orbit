@@ -1,6 +1,8 @@
 # Prueba aislada de Orbit Home
 
-Compila el `HomeWidget` de producción con Qt Widgets y un modelo sintético.
+Compila `HomeWidget`, `OrbitBackground` y `OrbitTitleBar` de producción con
+Qt Widgets y un modelo sintético. También compila el lector GIF oficial de Qt;
+la prueba añade automáticamente la ruta del plugin generado.
 No necesita juegos, Qt Test ni ejecutar el emulador completo. No sustituye las
 pruebas de integración con `GameList` y el ciclo de emulación.
 
@@ -25,3 +27,13 @@ el escritorio para comprobar el foco; se cierra por sí sola. Devuelve 0 y muest
 El paquete Qt Windows de upstream no incluye el plugin `offscreen`; utilizar
 `windows` permite ejecutar esta prueba con el paquete incluido. Todos los datos
 y dibujos de la captura son ejemplos sintéticos.
+
+La suite comprueba menús añadidos y retirados dinámicamente, asociación de
+atajos, conservación de las acciones de Dolphin y maximizar/restaurar. F10
+queda reservado a la acción original de Pausa/Jugar.
+
+El GIF de `data/background.gif` es un dibujo sintético de dos colores creado
+para esta prueba, sin recursos de videojuegos. Se verifican cambios reales de
+fotograma, importación al perfil, persistencia, independencia entre juegos,
+rechazo de archivos corruptos y pausa al ocultar la vista, reducir movimiento
+o suspender el fondo durante emulación.

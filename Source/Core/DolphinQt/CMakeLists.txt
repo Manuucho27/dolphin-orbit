@@ -24,6 +24,10 @@ set(CMAKE_AUTORCC ON)
 
 find_package(Qt6 6.2 REQUIRED COMPONENTS Core Gui Widgets Svg)
 
+if(WIN32)
+  add_subdirectory("${CMAKE_SOURCE_DIR}/Externals/QtGif" "${CMAKE_BINARY_DIR}/Externals/QtGif")
+endif()
+
 if (Qt6_VERSION VERSION_GREATER_EQUAL 6.10.0)
   # GuiPrivate is needed to #include qplatformnativeinterface.h in MainWindow.cpp with Qt 6.10+.
   set(NEED_QT_GUI_PRIVATE_COMPONENT ON)
@@ -294,6 +298,10 @@ add_executable(dolphin-emu
   GameList/ListProxyModel.h
   Home/HomeWidget.cpp
   Home/HomeWidget.h
+  Home/OrbitBackground.cpp
+  Home/OrbitBackground.h
+  Home/OrbitTitleBar.cpp
+  Home/OrbitTitleBar.h
   GCMemcardCreateNewDialog.cpp
   GCMemcardCreateNewDialog.h
   GCMemcardManager.cpp
@@ -474,6 +482,10 @@ PRIVATE
   imgui
   implot
 )
+
+if(TARGET orbit-qt-gif)
+  add_dependencies(dolphin-emu orbit-qt-gif)
+endif()
 
 if(ENABLE_SDL)
   target_link_libraries(dolphin-emu

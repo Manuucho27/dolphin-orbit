@@ -39,6 +39,7 @@ public:
   void SetListView() { SetPreferredView(true); }
   void SetGridView() { SetPreferredView(false); }
   void SetHomeView();
+  void SetHomeBackgroundPlaybackEnabled(bool enabled);
   void SetViewColumn(int col, bool view);
   void SetSearchTerm(const QString& term);
 

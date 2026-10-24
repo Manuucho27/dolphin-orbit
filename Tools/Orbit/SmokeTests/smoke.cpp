@@ -5,6 +5,9 @@
 #include <QApplication>
 #include <QCoreApplication>
 #include <QEventLoop>
+#include <QSettings>
+#include <QTemporaryDir>
+#include <QTimer>
 #include <QImage>
 #include <QItemSelectionModel>
 #include <QKeyEvent>
@@ -21,6 +24,9 @@
 #include "DolphinQt/GameList/GameListModel.h"
 #include "DolphinQt/Home/HomeWidget.h"
 
+void RunBackgroundTests();
+void RunShellTests();
+
 namespace
 {
 using Column = GameListModel::Column;
@@ -35,6 +41,13 @@ void Pump()
 {
   QCoreApplication::sendPostedEvents();
   QCoreApplication::processEvents(QEventLoop::AllEvents);
+}
+
+void Settle()
+{
+  QEventLoop loop;
+  QTimer::singleShot(420, &loop, &QEventLoop::quit);
+  loop.exec();
 }
 
 class SyntheticGridProxy final : public QSortFilterProxyModel
@@ -115,18 +128,10 @@ void AppendGame(QStandardItemModel* source, const QString& title)
   row[static_cast<int>(Column::Size)]->setText(QStringLiteral("No game file"));
   row[static_cast<int>(Column::Description)]->setText(
       QStringLiteral("An original sample entry for reviewing the native DolphinQt interface."));
+  row[static_cast<int>(Column::FilePath)]->setText(QStringLiteral("C:/Synthetic/"));
+  row[static_cast<int>(Column::FileName)]->setText(title + QStringLiteral(".rvz"));
   source->appendRow(row);
   Pump();
-}
-
-QPushButton* FindButton(HomeWidget* home, const QString& text)
-{
-  for (QPushButton* button : home->findChildren<QPushButton*>())
-  {
-    if (button->text() == text)
-      return button;
-  }
-  throw std::runtime_error("Expected button was not found");
 }
 
 void PressEnter(QWidget* target)
@@ -143,6 +148,7 @@ int main(int argc, char** argv)
 {
   QApplication app(argc, argv);
   app.setQuitOnLastWindowClosed(false);
+  QCoreApplication::addLibraryPath(QString::fromUtf8(ORBIT_PLUGIN_PATH));
   QPalette light_palette = app.palette();
   light_palette.setColor(QPalette::Window, QColor(QStringLiteral("#ffffff")));
   app.setPalette(light_palette);
@@ -154,6 +160,9 @@ int main(int argc, char** argv)
   auto* layout = new QVBoxLayout(&host);
   layout->setContentsMargins(0, 0, 0, 0);
   auto* home = new HomeWidget(&proxy, &host);
+  QTemporaryDir profile;
+  QSettings background_settings(profile.filePath(QStringLiteral("Qt.ini")), QSettings::IniFormat);
+  home->SetBackgroundSettings(&background_settings);
   layout->addWidget(home);
   host.resize(1100, 720);
   host.show();
@@ -162,15 +171,22 @@ int main(int argc, char** argv)
 
   try
   {
-    Require(home->grab().toImage().pixelColor(2, 2) == QColor(QStringLiteral("#0a1323")),
+    RunBackgroundTests();
+    RunShellTests();
+    host.activateWindow();
+    Pump();
+    const QColor corner = home->grab().toImage().pixelColor(2, 2);
+    Require(corner.red() < 50 && corner.green() < 50 && corner.blue() < 60,
             "Home background did not remain dark with a light application palette");
     auto* view = home->GetView();
-    auto* play = FindButton(home, QStringLiteral("Play"));
-    auto* settings = FindButton(home, QStringLiteral("Settings"));
-    auto* add_folder = FindButton(home, QStringLiteral("Add game folder"));
+    auto* play = home->findChild<QPushButton*>(QStringLiteral("OrbitPlay"));
+    auto* settings = home->findChild<QPushButton*>(QStringLiteral("OrbitSettings"));
+    auto* add_folder = home->findChild<QPushButton*>(QStringLiteral("OrbitAddFolder"));
     auto* title = home->findChild<QLabel*>(QStringLiteral("OrbitTitle"));
     auto* metadata = home->findChild<QLabel*>(QStringLiteral("OrbitMetadata"));
     auto* description = home->findChild<QLabel*>(QStringLiteral("OrbitDescription"));
+    Require(play && settings && add_folder && title && metadata && description,
+            "Required Home controls were not found");
     int game_events = 0;
     int settings_events = 0;
     int folder_events = 0;
@@ -181,6 +197,7 @@ int main(int argc, char** argv)
     Require(!play->isEnabled(), "Empty library enabled Play");
     Require(add_folder->isVisible(), "Empty state does not offer Add game folder");
     Require(!view->currentIndex().isValid(), "Empty library has a current game");
+    Settle();
     Require(home->grab().save(QString::fromUtf8(ORBIT_EMPTY_PREVIEW_PATH)),
             "Failed to save empty preview");
     add_folder->setFocus();
@@ -240,7 +257,7 @@ int main(int argc, char** argv)
     Pump();
     Require(proxy.rowCount() == 0 && !play->isEnabled(), "Filter-to-zero did not disable Play");
     Require(home->findChild<QLabel*>(QStringLiteral("OrbitEmptyTitle"))->text() ==
-                QStringLiteral("No matching games"),
+                QStringLiteral("No hay coincidencias"),
             "Filtered library did not show the no-matches state");
     Require(settings->hasFocus(), "Filtering to zero stole focus from Settings");
     proxy.setFilterFixedString(QString());
@@ -277,10 +294,12 @@ int main(int argc, char** argv)
     Require(host.forwarded_enters == 1, "Home view did not delegate Enter to GameList's parent");
     Require(game_events == 2, "Home view duplicated parent keyboard activation");
 
-    Pump();
+    Settle();
     Require(home->grab().save(QString::fromUtf8(ORBIT_PREVIEW_PATH)),
             "Failed to save library preview");
-    std::cout << "PASS: empty/insert/select/filter/remove/reset/plain-text/Play/Enter/focus; "
+    std::cout << "PASS: shell commands/dynamic menus/shortcuts/maximize/restore; "
+                 "GIF decoding/animation/import/persistence/isolation/pause/reduced-motion; "
+                 "empty/insert/select/filter/remove/reset/plain-text/Play/Enter/focus; "
                  "saved synthetic previews\n";
     return 0;
   }

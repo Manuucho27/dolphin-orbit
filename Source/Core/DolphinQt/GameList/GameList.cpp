@@ -348,6 +348,10 @@ void GameList::OpenGameFolder()
 void GameList::MakeHomeView()
 {
   m_home = new HomeWidget(m_grid_proxy, this);
+  m_home->SetBackgroundSettings(&Settings::GetQSettings());
+  m_home->SetGameCountVisible(Settings::Instance().IsGameCountVisible());
+  connect(&Settings::Instance(), &Settings::GameCountVisibilityChanged, m_home,
+          &HomeWidget::SetGameCountVisible);
   m_home->GetView()->setContextMenuPolicy(Qt::CustomContextMenu);
   connect(m_home, &HomeWidget::GameSelected, this, &GameList::GameSelected);
   connect(m_home, &HomeWidget::OpenGeneralSettings, this, &GameList::OpenGeneralSettings);
@@ -361,6 +365,11 @@ void GameList::MakeHomeView()
             if (currentWidget() == m_home)
               emit SelectionChanged(GetSelectedGame());
           });
+}
+
+void GameList::SetHomeBackgroundPlaybackEnabled(bool enabled)
+{
+  m_home->SetBackgroundPlaybackEnabled(enabled);
 }
 
 void GameList::resizeEvent(QResizeEvent* event)

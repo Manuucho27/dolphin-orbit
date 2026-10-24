@@ -19,6 +19,8 @@
 #include "DolphinQt/FIFO/FIFOPlayerWindow.h"
 
 class QMenu;
+class QResizeEvent;
+class QSizeGrip;
 class QStackedWidget;
 class QString;
 
@@ -31,7 +33,6 @@ class CodeWidget;
 class DiscordHandler;
 class DragEnterEvent;
 class FreeLookWindow;
-class GameCount;
 class GameList;
 class GBATASInputWindow;
 class GCTASInputWindow;
@@ -46,6 +47,7 @@ class MenuBar;
 class NetPlayDialog;
 class NetPlaySetupDialog;
 class NetworkWidget;
+class OrbitTitleBar;
 class RegisterWidget;
 class RenderWidget;
 class SearchBar;
@@ -92,6 +94,7 @@ public:
 
   bool eventFilter(QObject* object, QEvent* event) override;
   QMenu* createPopupMenu() override;
+  bool nativeEvent(const QByteArray& event_type, void* message, qintptr* result) override;
 
   void ShowTriforceWindow();
 
@@ -135,6 +138,8 @@ private:
   void ScreenShot();
 
   void CreateComponents();
+  void CreateOrbitShell();
+  void UpdateOrbitChrome();
 
   void ConnectGameList();
   void ConnectHost();
@@ -229,6 +234,7 @@ private:
   void OnStopComplete();
   void dragEnterEvent(QDragEnterEvent* event) override;
   void dropEvent(QDropEvent* event) override;
+  void resizeEvent(QResizeEvent* event) override;
   QSize sizeHint() const override;
 
   Core::System& m_system;
@@ -242,7 +248,8 @@ private:
   MenuBar* m_menu_bar;
   SearchBar* m_search_bar;
   GameList* m_game_list;
-  GameCount* m_game_count;
+  OrbitTitleBar* m_orbit_title_bar = nullptr;
+  QSizeGrip* m_orbit_resize_grip = nullptr;
   RenderWidget* m_render_widget = nullptr;
   bool m_rendering_to_main;
   bool m_stop_confirm_showing = false;
