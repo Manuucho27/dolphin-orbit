@@ -15,7 +15,7 @@ de esta sección corresponden al código de la segunda entrega.
 | Aplicación nativa con perfil aislado | Comprobada visualmente: cabecera propia y ausencia de las franjas blancas superior e inferior y de la barra de título clásica; Más y maximizar/restaurar funcionales. |
 | Escaneo de biblioteca | Un DOL sintético propio apareció en la biblioteca. Un DOL mal alineado produjo un error y permitió recuperar la interfaz. |
 | Ciclo de emulación sintética | Un DOL propio alineado inició emulación en ventana separada; Pausa cambió a Jugar en la cabecera; tras confirmar Detener, volvió Home y se ocultaron los controles de emulación. |
-| Codificación del helper y dependencias de cabeceras | La verificación final sobre la compilación real está pendiente de incorporarse a este registro. |
+| Codificación del helper y dependencias de cabeceras | Correcta: prefijo UTF-8 y 311 dependencias válidas para HomeWidget.cpp.obj, verificadas mediante Ninja en la compilación real. |
 
 Se utilizaron perfiles aislados, imágenes y programas sintéticos propios. No se
 emplearon juegos comerciales ni partidas del usuario. La prueba del DOL verifica
